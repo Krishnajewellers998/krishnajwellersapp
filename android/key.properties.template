@@ -1,0 +1,22 @@
+# ================================================================
+#  KEY SIGNING PROPERTIES — DO NOT COMMIT TO GIT
+#  Add this file path to your .gitignore
+# ================================================================
+#
+#  HOW TO GENERATE YOUR KEYSTORE (run once):
+#
+#  keytool -genkey -v ^
+#    -keystore krishna-jewellers-key.jks ^
+#    -storetype JKS ^
+#    -keyalg RSA ^
+#    -keysize 2048 ^
+#    -validity 10000 ^
+#    -alias krishna-jewellers
+#
+#  Then fill in the values below:
+# ================================================================
+
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=krishna-jewellers
+storeFile=../krishna-jewellers-key.jks
