@@ -3,6 +3,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../widgets/jewellery_image_widget.dart';
+import 'privacy_policy_page.dart';
+
 
 class ContactTab extends StatelessWidget {
   const ContactTab({super.key});
@@ -251,7 +253,54 @@ class ContactTab extends StatelessWidget {
             ),
 
             const SizedBox(height: 30),
+
+            // Divider
+            const Divider(color: AppColors.goldBorder),
+            const SizedBox(height: 16),
+
+            // About / Legal section heading
+            const Text(
+              'LEGAL & ABOUT',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                letterSpacing: 2,
+                fontWeight: FontWeight.bold,
+                color: AppColors.goldDark,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Privacy Policy Button
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.goldBorder, width: 1.5),
+                foregroundColor: AppColors.textMuted,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const PrivacyPolicyPage(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.privacy_tip_outlined, color: AppColors.goldDark, size: 20),
+              label: const Text(
+                'Privacy Policy',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textMain,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 30),
           ],
+
         ),
       ),
     );
