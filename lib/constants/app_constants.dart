@@ -31,9 +31,10 @@ class AppConstants {
       '@25.5926833,79.5662587,16z/data=!4m6!3m5!1s0x399d434a0774dc51:'
       '0x76e7534921a91ce!8m2!3d25.5926833!4d79.5662587!16s%2Fg%2F11l6tmshdf';
 
-  // ─── LIVE API ─────────────────────────────────────────
-  // Change the backend URL here if the server moves
+  // ─── LIVE API & DIRECT STREAM ─────────────────────────
   static const String apiBaseUrl = 'https://krishnajwellersbackend.onrender.com';
+  static const String liveGoldStreamUrl =
+      'https://bcast.pankajchain.com:7768/VOTSBroadcastStreaming/Services/xml/GetLiveRateByTemplateID/pankajchain';
   static const String apiGoldRates  = '$apiBaseUrl/api/gold-rates';
   static const String apiCategories = '$apiBaseUrl/api/categories';
   static const String apiJewellery  = '$apiBaseUrl/api/jewellery';

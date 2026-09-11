@@ -98,9 +98,9 @@ class GoldRatesModel {
   factory GoldRatesModel.fromJson(Map<String, dynamic> json) {
     final rates = json['goldRates'] ?? json;
     return GoldRatesModel(
-      rate24K: int.tryParse(rates['24K']?.toString() ?? '158000') ?? 158000,
-      rate22K: int.tryParse(rates['22K']?.toString() ?? '145305') ?? 145305,
-      rate18K: int.tryParse(rates['18K']?.toString() ?? '118886') ?? 118886,
+      rate24K: int.tryParse(rates['24K']?.toString() ?? '0') ?? 0,
+      rate22K: int.tryParse(rates['22K']?.toString() ?? '0') ?? 0,
+      rate18K: int.tryParse(rates['18K']?.toString() ?? '0') ?? 0,
       updatedAt: json['updatedAt']?.toString(),
     );
   }

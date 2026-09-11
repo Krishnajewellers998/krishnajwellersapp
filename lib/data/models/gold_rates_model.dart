@@ -15,9 +15,9 @@ class GoldRatesModel extends GoldRatesEntity {
     final r18 = rates['18K'] ?? rates['rate18'] ?? 0;
 
     return GoldRatesModel(
-      rate24K: (r24 is num) ? r24.toInt() : int.tryParse(r24.toString()) ?? 158000,
-      rate22K: (r22 is num) ? r22.toInt() : int.tryParse(r22.toString()) ?? 145305,
-      rate18K: (r18 is num) ? r18.toInt() : int.tryParse(r18.toString()) ?? 118886,
+      rate24K: (r24 is num) ? r24.toInt() : int.tryParse(r24.toString()) ?? 0,
+      rate22K: (r22 is num) ? r22.toInt() : int.tryParse(r22.toString()) ?? 0,
+      rate18K: (r18 is num) ? r18.toInt() : int.tryParse(r18.toString()) ?? 0,
       updatedAt: json['updatedAt']?.toString(),
     );
   }
