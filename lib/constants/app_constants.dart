@@ -33,7 +33,7 @@ class AppConstants {
 
   // ─── LIVE API ─────────────────────────────────────────
   // Change the backend URL here if the server moves
-  static const String apiBaseUrl = 'https://krishna-jewellers-y7h4.onrender.com';
+  static const String apiBaseUrl = 'https://krishnajwellersbackend.onrender.com';
   static const String apiGoldRates  = '$apiBaseUrl/api/gold-rates';
   static const String apiCategories = '$apiBaseUrl/api/categories';
   static const String apiJewellery  = '$apiBaseUrl/api/jewellery';
