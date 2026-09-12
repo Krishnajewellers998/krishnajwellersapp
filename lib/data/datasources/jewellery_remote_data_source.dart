@@ -23,7 +23,7 @@ class JewelleryRemoteDataSourceImpl implements JewelleryRemoteDataSource {
       final url = '${AppConstants.liveGoldStreamUrl}?_=${DateTime.now().millisecondsSinceEpoch}';
       final response = await client
           .get(Uri.parse(url), headers: {'Accept': 'text/plain, */*; q=0.01'})
-          .timeout(const Duration(seconds: 8));
+          .timeout(const Duration(seconds: 4)); // Short timeout for live stream
 
       if (response.statusCode == 200) {
         final text = response.body;
@@ -43,11 +43,26 @@ class JewelleryRemoteDataSourceImpl implements JewelleryRemoteDataSource {
             updatedAt: DateTime.now().toIso8601String(),
           );
         }
-        throw ServerFailure('Gold rate line not found in live stream');
       }
-      throw ServerFailure('Gold rates stream responded with status: ${response.statusCode}');
+    } catch (_) {
+      // Ignore live stream failure, fallback below
+    }
+
+    // Fallback to backend API
+    try {
+      final response = await client
+          .get(Uri.parse(AppConstants.apiGoldRates))
+          .timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded['success'] == true && decoded['goldRates'] != null) {
+          return GoldRatesModel.fromJson(decoded['goldRates']);
+        }
+      }
+      throw ServerFailure('Backend gold rates returned status: ${response.statusCode}');
     } catch (e) {
-      throw ServerFailure('Failed to fetch live gold rates: $e');
+      throw ServerFailure('Failed to fetch gold rates from both stream and backend: $e');
     }
   }
 

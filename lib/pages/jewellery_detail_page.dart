@@ -61,16 +61,6 @@ class _JewelleryDetailPageState extends State<JewelleryDetailPage> {
             letterSpacing: 1.2,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share, color: AppColors.goldLight),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Sharing jewellery details...')),
-              );
-            },
-          ),
-        ],
       ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

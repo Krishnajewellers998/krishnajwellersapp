@@ -7,11 +7,13 @@ import 'jewellery_detail_page.dart';
 
 class SearchScreen extends StatefulWidget {
   final List<JewelleryItem> allItems;
+  final List<CategoryModel> categories;
   final String? initialQuery;
 
   const SearchScreen({
     super.key,
     required this.allItems,
+    required this.categories,
     this.initialQuery,
   });
 
@@ -61,6 +63,20 @@ class _SearchScreenState extends State<SearchScreen> {
       for (final syn in item.synonyms) {
         if (syn.toLowerCase().contains(qLower)) return true;
       }
+
+      // Check category name and category synonyms
+      final matchingCategory = widget.categories.where((c) {
+        if (c.name.toLowerCase().contains(qLower)) return true;
+        for (final cSyn in c.synonyms) {
+          if (cSyn.toLowerCase().contains(qLower)) return true;
+        }
+        return false;
+      }).map((c) => c.name.toLowerCase().trim()).toList();
+
+      if (matchingCategory.contains(item.category.toLowerCase().trim())) {
+        return true;
+      }
+
       return false;
     }).toList();
 
@@ -192,40 +208,44 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: AppConstants.popularSearches.map((term) {
-              return GestureDetector(
-                onTap: () => _tapSuggestion(term),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.goldBorder),
-                    boxShadow: const [
-                      BoxShadow(color: Color(0x0A000000), blurRadius: 4),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.trending_up, size: 12, color: AppColors.goldDark),
-                      const SizedBox(width: 5),
-                      Text(
-                        term,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textMain,
-                          fontWeight: FontWeight.w500,
-                        ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: AppConstants.popularSearches.map((term) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: GestureDetector(
+                    onTap: () => _tapSuggestion(term),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.goldBorder),
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x0A000000), blurRadius: 4),
+                        ],
                       ),
-                    ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.trending_up, size: 12, color: AppColors.goldDark),
+                          const SizedBox(width: 5),
+                          Text(
+                            term,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMain,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-              );
-            }).toList(),
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),
@@ -336,7 +356,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildGrid(List<JewelleryItem> items) {
     return GridView.builder(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.only(left: 12, right: 12, top: 12, bottom: 80),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         childAspectRatio: 0.72,

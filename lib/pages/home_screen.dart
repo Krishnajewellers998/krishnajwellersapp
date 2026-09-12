@@ -15,6 +15,7 @@ import '../presentation/blocs/jewellery/jewellery_event.dart';
 import '../services/jewellery_repository.dart';
 import '../widgets/gold_rates_card.dart';
 import '../widgets/jewellery_image_widget.dart';
+import 'categories_tab.dart';
 import 'category_listing_page.dart';
 import 'jewellery_detail_page.dart';
 import 'search_screen.dart';
@@ -67,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => SearchScreen(allItems: _jewellery),
+        builder: (_) => SearchScreen(allItems: _jewellery, categories: _categories),
       ),
     );
   }
@@ -315,7 +316,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           crossAxisSpacing: 10,
                           mainAxisSpacing: 10,
                         ),
-                        itemCount: _categories.length,
+                        itemCount: _categories.length > 6 ? 6 : _categories.length,
                         itemBuilder: (context, index) {
                           final category = _categories[index];
                           String? displayImg = category.image;
@@ -391,6 +392,46 @@ class _HomeScreenState extends State<HomeScreen> {
                         },
                       ),
                     ),
+              
+              // View All Categories Button
+              if (!_isLoading && _categories.length > 6)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.black,
+                        foregroundColor: AppColors.gold,
+                        side: const BorderSide(color: AppColors.goldDark),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        elevation: 4,
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const CategoriesTab()),
+                        );
+                      },
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'VIEW ALL CATEGORIES',
+                            style: TextStyle(
+                              fontSize: 12,
+                              letterSpacing: 1.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Icon(Icons.arrow_forward_ios, size: 14),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
 
               const SizedBox(height: 25),
 

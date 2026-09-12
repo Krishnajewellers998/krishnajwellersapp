@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
+import '../constants/app_constants.dart';
 
 class JewelleryImageWidget extends StatelessWidget {
   final String? imagePath;
@@ -46,25 +48,55 @@ class JewelleryImageWidget extends StatelessWidget {
           );
         },
       );
+    } else if (path.startsWith('data:image/')) {
+      final base64String = path.split(',').last;
+      content = Image.memory(
+        base64Decode(base64String),
+        width: width,
+        height: height,
+        fit: fit,
+        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+      );
     } else {
-      // Local asset path (e.g., "images/banner.jpg" or "assets/images/banner.jpg")
       String cleanPath = path;
       if (cleanPath.startsWith('/')) {
         cleanPath = cleanPath.substring(1);
       }
-      if (!cleanPath.startsWith('assets/')) {
-        cleanPath = 'assets/$cleanPath';
-      }
 
-      content = Image.asset(
-        cleanPath,
-        width: width,
-        height: height,
-        fit: fit,
-        errorBuilder: (context, error, stackTrace) {
-          return _buildPlaceholder();
-        },
-      );
+      if (cleanPath.startsWith('assets/')) {
+        // It's a local asset
+        content = Image.asset(
+          cleanPath,
+          width: width,
+          height: height,
+          fit: fit,
+          errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+        );
+      } else {
+        // It's a backend image path like 'images/...'
+        final fullUrl = '${AppConstants.apiBaseUrl}/$cleanPath';
+        content = Image.network(
+          fullUrl,
+          width: width,
+          height: height,
+          fit: fit,
+          errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(
+              width: width,
+              height: height,
+              color: AppColors.goldBgGradientTop,
+              child: const Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.goldDark,
+                ),
+              ),
+            );
+          },
+        );
+      }
     }
 
     if (borderRadius != null) {
