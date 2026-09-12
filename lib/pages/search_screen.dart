@@ -140,12 +140,15 @@ class _SearchScreenState extends State<SearchScreen> {
                             child: TextField(
                               controller: _controller,
                               autofocus: true,
+                              maxLines: 1,
+                              textAlignVertical: TextAlignVertical.center,
                               style: const TextStyle(color: Colors.white, fontSize: 14),
                               decoration: const InputDecoration(
+                                isDense: true,
                                 border: InputBorder.none,
                                 hintText: 'Search jewellery...',
                                 hintStyle: TextStyle(color: Color(0xFF888888), fontSize: 13),
-                                contentPadding: EdgeInsets.symmetric(vertical: 10),
+                                contentPadding: EdgeInsets.zero,
                               ),
                               onChanged: _runSearch,
                               onSubmitted: _runSearch,
@@ -351,7 +354,81 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildResultsGrid() {
-    return _buildGrid(_results);
+    final others = widget.allItems.where((item) => !_results.contains(item)).toList();
+    others.shuffle();
+    final similarItems = others.take(6).toList();
+
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.only(left: 12, right: 12, top: 12, bottom: 20),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.72,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                return _buildGridItem(_results[index]);
+              },
+              childCount: _results.length,
+            ),
+          ),
+        ),
+        if (similarItems.isNotEmpty) ...[
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16, 10, 16, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    'SIMILAR PRODUCTS',
+                    style: TextStyle(
+                      fontSize: 11,
+                      letterSpacing: 2,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.goldDark,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'You May Also Like',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontFamily: 'serif',
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textMain,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.only(left: 12, right: 12, top: 12, bottom: 80),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.72,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  return _buildGridItem(similarItems[index]);
+                },
+                childCount: similarItems.length,
+              ),
+            ),
+          ),
+        ] else ...[
+          const SliverToBoxAdapter(child: SizedBox(height: 80)),
+        ]
+      ],
+    );
   }
 
   Widget _buildGrid(List<JewelleryItem> items) {
@@ -365,7 +442,12 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
       itemCount: items.length,
       itemBuilder: (context, index) {
-        final item = items[index];
+        return _buildGridItem(items[index]);
+      },
+    );
+  }
+
+  Widget _buildGridItem(JewelleryItem item) {
         final img = item.allImages.isNotEmpty ? item.allImages.first : item.singleImage;
         return GestureDetector(
           onTap: () => Navigator.push(
@@ -430,7 +512,5 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
           ),
         );
-      },
-    );
   }
 }

@@ -78,6 +78,7 @@ class _CategoryListingPageState extends State<CategoryListingPage> {
         children: [
           // Search box inside category
           Container(
+            margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: const BoxDecoration(
               color: AppColors.goldBgGradientTop,
@@ -89,7 +90,10 @@ class _CategoryListingPageState extends State<CategoryListingPage> {
                   _searchQuery = val.trim();
                 });
               },
+              maxLines: 1,
+              textAlignVertical: TextAlignVertical.center,
               decoration: InputDecoration(
+                isDense: true,
                 filled: true,
                 fillColor: Colors.white,
                 hintText: 'Search within ${widget.categoryName}...',
