@@ -42,15 +42,15 @@ android {
         //  targetSdk 35 = Android 15 (latest Play Store requirement)
         // ──────────────────────────────────────────────────────────
         minSdk = flutter.minSdkVersion
-        targetSdk = 35
+        targetSdk = 36
 
         // ──────────────────────────────────────────────────────────
         //  VERSIONING
         //  versionCode: increase by 1 on every Play Store upload
         //  versionName: human-readable "Major.Minor.Patch"
         // ──────────────────────────────────────────────────────────
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 6
+        versionName = "1.5.1"
 
         // Multi-language support
         resourceConfigurations += listOf("en", "hi")
