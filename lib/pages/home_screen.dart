@@ -188,8 +188,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     child: JewelleryImageWidget(
                       imagePath: AppConstants.bannerImage,
-                      height: 145,
-                      fit: BoxFit.cover,
+                      height: 190,
+                      fit: BoxFit.fill,
                     ),
                   ),
                 ),
@@ -500,7 +500,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               Expanded(
                                 child: ClipRRect(
                                   borderRadius: const BorderRadius.vertical(top: Radius.circular(9)),
-                                  child: JewelleryImageWidget(imagePath: img, fit: BoxFit.cover),
+                                  child: JewelleryImageWidget(imagePath: img, fit: BoxFit.contain),
                                 ),
                               ),
                               Padding(

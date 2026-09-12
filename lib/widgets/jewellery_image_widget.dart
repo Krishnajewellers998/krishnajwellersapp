@@ -32,6 +32,7 @@ class JewelleryImageWidget extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
+        gaplessPlayback: true,
         errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
@@ -55,6 +56,7 @@ class JewelleryImageWidget extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
+        gaplessPlayback: true,
         errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
       );
     } else {
@@ -70,6 +72,7 @@ class JewelleryImageWidget extends StatelessWidget {
           width: width,
           height: height,
           fit: fit,
+          gaplessPlayback: true,
           errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
         );
       } else {
@@ -80,6 +83,7 @@ class JewelleryImageWidget extends StatelessWidget {
           width: width,
           height: height,
           fit: fit,
+          gaplessPlayback: true,
           errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;

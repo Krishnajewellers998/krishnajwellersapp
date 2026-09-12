@@ -63,7 +63,9 @@ class JewelleryItem {
 
   factory JewelleryItem.fromJson(Map<String, dynamic> json) {
     List<String> imgList = [];
-    if (json['images'] is List) {
+    if (json['photos'] is List) {
+      imgList = (json['photos'] as List).map((e) => e.toString()).toList();
+    } else if (json['images'] is List) {
       imgList = (json['images'] as List).map((e) => e.toString()).toList();
     }
     return JewelleryItem(
