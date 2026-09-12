@@ -16,7 +16,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     // Internal namespace (keep as-is for Kotlin/R class generation)
-    namespace = "com.krishnajewellers.krishna_jewellers_mobile"
+    namespace = "com.krishnajewellers.krishnajewellers"
 
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
@@ -34,7 +34,7 @@ android {
         // ──────────────────────────────────────────────────────────
         //  PLAY STORE APPLICATION ID — clean package name, no underscores
         // ──────────────────────────────────────────────────────────
-        applicationId = "com.krishnajewellers.app"
+        applicationId = "com.krishnajewellers.krishnajewellers"
 
         // ──────────────────────────────────────────────────────────
         //  SDK TARGETS

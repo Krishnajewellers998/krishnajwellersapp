@@ -1,4 +1,4 @@
-package com.krishnajewellers.krishna_jewellers_mobile
+package com.krishnajewellers.krishnajewellers
 
 import io.flutter.embedding.android.FlutterActivity
 
