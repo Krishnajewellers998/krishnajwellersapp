@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
-import '../models/jewellery_models.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../domain/entities/jewellery_item_entity.dart';
+import '../presentation/blocs/jewellery/jewellery_bloc.dart';
+import '../presentation/blocs/jewellery/jewellery_event.dart';
+import '../presentation/blocs/jewellery/jewellery_state.dart';
 import '../widgets/jewellery_image_widget.dart';
 import 'jewellery_detail_page.dart';
 
 class SearchScreen extends StatefulWidget {
-  final List<JewelleryItem> allItems;
-  final List<CategoryModel> categories;
   final String? initialQuery;
 
   const SearchScreen({
     super.key,
-    required this.allItems,
-    required this.categories,
     this.initialQuery,
   });
 
@@ -24,7 +24,6 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   late TextEditingController _controller;
   String _query = '';
-  List<JewelleryItem> _results = [];
   bool _hasSearched = false;
 
   @override
@@ -48,40 +47,15 @@ class _SearchScreenState extends State<SearchScreen> {
     final qLower = q.toLowerCase().trim();
     if (qLower.isEmpty) {
       setState(() {
-        _results = [];
         _hasSearched = false;
       });
       return;
     }
-    final matched = widget.allItems.where((item) {
-      if (item.name.toLowerCase().contains(qLower)) return true;
-      if (item.category.toLowerCase().contains(qLower)) return true;
-      if (item.description != null &&
-          item.description!.toLowerCase().contains(qLower)) {
-        return true;
-      }
-      for (final syn in item.synonyms) {
-        if (syn.toLowerCase().contains(qLower)) return true;
-      }
-
-      // Check category name and category synonyms
-      final matchingCategory = widget.categories.where((c) {
-        if (c.name.toLowerCase().contains(qLower)) return true;
-        for (final cSyn in c.synonyms) {
-          if (cSyn.toLowerCase().contains(qLower)) return true;
-        }
-        return false;
-      }).map((c) => c.name.toLowerCase().trim()).toList();
-
-      if (matchingCategory.contains(item.category.toLowerCase().trim())) {
-        return true;
-      }
-
-      return false;
-    }).toList();
+    
+    // Dispatch event to BLoC to fetch from backend
+    context.read<JewelleryBloc>().add(LoadJewelleryEvent(search: qLower));
 
     setState(() {
-      _results = matched;
       _hasSearched = true;
       _query = q;
     });
@@ -175,19 +149,39 @@ class _SearchScreenState extends State<SearchScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Suggestions / results count strip
-          if (!_hasSearched || _query.isEmpty)
-            _buildPopularSuggestions()
-          else
-            _buildResultsHeader(),
-
           // Results or empty state
           Expanded(
-            child: !_hasSearched || _query.isEmpty
-                ? _buildDefaultContent()
-                : _results.isEmpty
-                    ? _buildNoResults()
-                    : _buildResultsGrid(),
+            child: BlocBuilder<JewelleryBloc, JewelleryState>(
+              builder: (context, state) {
+                if (!_hasSearched || _query.isEmpty) {
+                  return Column(
+                    children: [
+                      _buildPopularSuggestions(),
+                      Expanded(child: _buildDefaultContent()),
+                    ],
+                  );
+                }
+                
+                if (state is JewelleryLoading) {
+                  return const Center(child: CircularProgressIndicator(color: AppColors.goldDark));
+                }
+                
+                if (state is JewelleryLoaded) {
+                  return Column(
+                    children: [
+                      _buildResultsHeader(state.items.length),
+                      Expanded(
+                        child: state.items.isEmpty
+                            ? _buildNoResults()
+                            : _buildResultsGrid(state),
+                      ),
+                    ],
+                  );
+                }
+                
+                return const SizedBox.shrink();
+              },
+            ),
           ),
         ],
       ),
@@ -255,7 +249,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildResultsHeader() {
+  Widget _buildResultsHeader(int count) {
     return Container(
       color: AppColors.goldBgGradientTop,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -271,7 +265,7 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
           ),
           Text(
-            '${_results.length} result${_results.length == 1 ? '' : 's'}',
+            '$count result${count == 1 ? '' : 's'}',
             style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
           ),
         ],
@@ -280,25 +274,12 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildDefaultContent() {
-    // Show all items as "browse" when no search typed yet
-    final preview = widget.allItems.take(12).toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Text(
-            'ALL JEWELLERY',
-            style: TextStyle(
-              fontSize: 10,
-              letterSpacing: 1.5,
-              fontWeight: FontWeight.bold,
-              color: AppColors.goldDark,
-            ),
-          ),
-        ),
-        Expanded(child: _buildGrid(preview)),
-      ],
+    // With BLoC we don't have allItems directly, so we just show an empty or prompt state
+    return const Center(
+      child: Text(
+        'Enter a search term to find beautiful jewellery',
+        style: TextStyle(color: AppColors.textMuted),
+      )
     );
   }
 
@@ -353,10 +334,8 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildResultsGrid() {
-    final others = widget.allItems.where((item) => !_results.contains(item)).toList();
-    others.shuffle();
-    final similarItems = others.take(6).toList();
+  Widget _buildResultsGrid(JewelleryLoaded state) {
+    final items = state.items;
 
     return CustomScrollView(
       slivers: [
@@ -371,84 +350,41 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
             delegate: SliverChildBuilderDelegate(
               (context, index) {
-                return _buildGridItem(_results[index]);
+                return _buildGridItem(items[index]);
               },
-              childCount: _results.length,
+              childCount: items.length,
             ),
           ),
         ),
-        if (similarItems.isNotEmpty) ...[
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16, 10, 16, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    'SIMILAR PRODUCTS',
-                    style: TextStyle(
-                      fontSize: 11,
-                      letterSpacing: 2,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.goldDark,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'You May Also Like',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontFamily: 'serif',
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textMain,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.only(left: 12, right: 12, top: 12, bottom: 80),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.72,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  return _buildGridItem(similarItems[index]);
-                },
-                childCount: similarItems.length,
-              ),
-            ),
-          ),
-        ] else ...[
-          const SliverToBoxAdapter(child: SizedBox(height: 80)),
-        ]
+        if (state.hasReachedMax)
+           const SliverToBoxAdapter(
+             child: Padding(
+               padding: EdgeInsets.only(bottom: 80),
+               child: Center(
+                 child: Text("No more results", style: TextStyle(color: AppColors.textMuted)),
+               )
+             )
+           )
+        else 
+           SliverToBoxAdapter(
+             child: Padding(
+               padding: const EdgeInsets.only(bottom: 80),
+               child: Center(
+                 child: OutlinedButton(
+                   onPressed: () {
+                     context.read<JewelleryBloc>().add(const LoadMoreJewelleryEvent());
+                   },
+                   child: const Text("Load More"),
+                 )
+               )
+             )
+           )
       ],
     );
   }
 
-  Widget _buildGrid(List<JewelleryItem> items) {
-    return GridView.builder(
-      padding: const EdgeInsets.only(left: 12, right: 12, top: 12, bottom: 80),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.72,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        return _buildGridItem(items[index]);
-      },
-    );
-  }
-
-  Widget _buildGridItem(JewelleryItem item) {
-        final img = item.allImages.isNotEmpty ? item.allImages.first : item.singleImage;
+  Widget _buildGridItem(JewelleryItemEntity item) {
+        final img = item.displayImage;
         return GestureDetector(
           onTap: () => Navigator.push(
             context,

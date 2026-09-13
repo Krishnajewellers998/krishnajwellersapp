@@ -1,5 +1,4 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../core/usecase/usecase.dart';
 import '../../../domain/usecases/get_categories_usecase.dart';
 import 'categories_event.dart';
 import 'categories_state.dart';
@@ -17,8 +16,8 @@ class CategoriesBloc extends Bloc<CategoriesEvent, CategoriesState> {
   ) async {
     emit(CategoriesLoading());
     try {
-      final categories = await getCategoriesUseCase(NoParams());
-      emit(CategoriesLoaded(categories));
+      final response = await getCategoriesUseCase(const GetCategoriesParams());
+      emit(CategoriesLoaded(response.items));
     } catch (e) {
       emit(CategoriesError(e.toString()));
     }

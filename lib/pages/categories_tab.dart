@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../constants/app_colors.dart';
-import '../models/jewellery_models.dart';
-import '../services/jewellery_repository.dart';
+import '../domain/entities/category_entity.dart';
+import '../domain/entities/jewellery_item_entity.dart';
+import '../presentation/blocs/categories/categories_bloc.dart';
+import '../presentation/blocs/categories/categories_state.dart';
+import '../presentation/blocs/jewellery/jewellery_bloc.dart';
+import '../presentation/blocs/jewellery/jewellery_state.dart';
 import '../widgets/jewellery_image_widget.dart';
 import 'category_listing_page.dart';
 
@@ -13,36 +18,10 @@ class CategoriesTab extends StatefulWidget {
 }
 
 class _CategoriesTabState extends State<CategoriesTab> {
-  List<CategoryModel> _categories = [];
-  List<JewelleryItem> _jewellery = [];
-  bool _isLoading = true;
   String _filter = '';
 
   @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final cats = await JewelleryRepository.fetchCategories();
-    final items = await JewelleryRepository.fetchJewellery();
-    if (mounted) {
-      setState(() {
-        _categories = cats;
-        _jewellery = items;
-        _isLoading = false;
-      });
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final filtered = _categories.where((c) {
-      if (_filter.isEmpty) return true;
-      return c.name.toLowerCase().contains(_filter.toLowerCase());
-    }).toList();
-
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
@@ -61,7 +40,6 @@ class _CategoriesTabState extends State<CategoriesTab> {
       ),
       body: Column(
         children: [
-          // Search categories
           Padding(
             padding: const EdgeInsets.all(14),
             child: TextField(
@@ -88,94 +66,118 @@ class _CategoriesTabState extends State<CategoriesTab> {
             ),
           ),
           Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.goldDark))
-                : GridView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.85,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                    ),
-                    itemCount: filtered.length,
-                    itemBuilder: (context, idx) {
-                      final category = filtered[idx];
-                      String? img = category.image;
-                      if (img == null || img.isEmpty) {
-                        final match = _jewellery.firstWhere(
-                          (j) => j.category.toLowerCase() == category.name.toLowerCase(),
-                          orElse: () => JewelleryItem(id: 0, name: '', category: ''),
-                        );
-                        img = match.allImages.isNotEmpty ? match.allImages.first : match.singleImage;
-                      }
+            child: BlocBuilder<CategoriesBloc, CategoriesState>(
+              builder: (context, catState) {
+                final categories = catState is CategoriesLoaded ? catState.categories : <CategoryEntity>[];
+                final filtered = categories.where((c) {
+                  if (_filter.isEmpty) return true;
+                  return c.name.toLowerCase().contains(_filter.toLowerCase());
+                }).toList();
 
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CategoryListingPage(categoryName: category.name),
-                            ),
+                if (catState is CategoriesLoading && categories.isEmpty) {
+                  return const Center(child: CircularProgressIndicator(color: AppColors.goldDark));
+                }
+
+                if (filtered.isEmpty) {
+                  return const Center(
+                    child: Text('No categories found', style: TextStyle(color: AppColors.textMuted)),
+                  );
+                }
+
+                return BlocBuilder<JewelleryBloc, JewelleryState>(
+                  builder: (context, jState) {
+                    final jewellery = jState is JewelleryLoaded ? jState.items : <JewelleryItemEntity>[];
+
+                    return GridView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 0.85,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                      ),
+                      itemCount: filtered.length,
+                      itemBuilder: (context, idx) {
+                        final category = filtered[idx];
+                        String img = category.image;
+                        if (img.isEmpty) {
+                          final match = jewellery.firstWhere(
+                            (j) => j.category.toLowerCase() == category.name.toLowerCase(),
+                            orElse: () => const JewelleryItemEntity(id: 0, name: '', category: ''),
                           );
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.goldBorder),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x0C000000),
-                                blurRadius: 6,
-                                offset: Offset(0, 2),
+                          img = match.displayImage;
+                        }
+
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CategoryListingPage(categoryName: category.name),
                               ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(
-                                child: ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
-                                  child: JewelleryImageWidget(
-                                    imagePath: img,
-                                    fit: BoxFit.cover,
+                            );
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.goldBorder),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x0C000000),
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  child: ClipRRect(
+                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+                                    child: JewelleryImageWidget(
+                                      imagePath: img,
+                                      fit: BoxFit.cover,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(10),
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      category.name.toUpperCase(),
-                                      style: const TextStyle(
-                                        fontFamily: 'serif',
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
+                                Padding(
+                                  padding: const EdgeInsets.all(10),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        category.name.toUpperCase(),
+                                        style: const TextStyle(
+                                          fontFamily: 'serif',
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 2),
-                                    const Text(
-                                      'View Collection →',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: AppColors.goldDark,
-                                        fontWeight: FontWeight.w600,
+                                      const SizedBox(height: 2),
+                                      const Text(
+                                        'View Collection →',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: AppColors.goldDark,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ],
       ),

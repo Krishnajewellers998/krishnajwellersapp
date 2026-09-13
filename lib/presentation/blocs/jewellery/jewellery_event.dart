@@ -16,3 +16,7 @@ class LoadJewelleryEvent extends JewelleryEvent {
   @override
   List<Object?> get props => [category, search];
 }
+
+class LoadMoreJewelleryEvent extends JewelleryEvent {
+  const LoadMoreJewelleryEvent();
+}

@@ -8,6 +8,7 @@ class JewelleryBloc extends Bloc<JewelleryEvent, JewelleryState> {
 
   JewelleryBloc({required this.getJewelleryUseCase}) : super(JewelleryInitial()) {
     on<LoadJewelleryEvent>(_onLoadJewellery);
+    on<LoadMoreJewelleryEvent>(_onLoadMoreJewellery);
   }
 
   Future<void> _onLoadJewellery(
@@ -16,17 +17,49 @@ class JewelleryBloc extends Bloc<JewelleryEvent, JewelleryState> {
   ) async {
     emit(JewelleryLoading());
     try {
-      final items = await getJewelleryUseCase(GetJewelleryParams(
+      final response = await getJewelleryUseCase(GetJewelleryParams(
         category: event.category,
         search: event.search,
+        page: 1,
+        limit: 10,
       ));
       emit(JewelleryLoaded(
-        items,
+        items: response.items,
         selectedCategory: event.category,
         search: event.search,
+        hasReachedMax: response.hasReachedMax,
+        page: 1,
       ));
     } catch (e) {
       emit(JewelleryError(e.toString()));
+    }
+  }
+
+  Future<void> _onLoadMoreJewellery(
+    LoadMoreJewelleryEvent event,
+    Emitter<JewelleryState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is JewelleryLoaded && !currentState.hasReachedMax) {
+      try {
+        final nextPage = currentState.page + 1;
+        final response = await getJewelleryUseCase(GetJewelleryParams(
+          category: currentState.selectedCategory,
+          search: currentState.search,
+          page: nextPage,
+          limit: 10,
+        ));
+        
+        emit(response.items.isEmpty
+            ? currentState.copyWith(hasReachedMax: true)
+            : currentState.copyWith(
+                items: currentState.items + response.items,
+                hasReachedMax: response.hasReachedMax,
+                page: nextPage,
+              ));
+      } catch (e) {
+        // Optional: Handle pagination error gracefully without breaking UI
+      }
     }
   }
 }

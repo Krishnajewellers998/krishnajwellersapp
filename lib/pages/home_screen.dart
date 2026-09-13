@@ -4,20 +4,21 @@ import 'package:url_launcher/url_launcher.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../domain/entities/gold_rates_entity.dart';
-import '../models/jewellery_models.dart';
 import '../presentation/blocs/categories/categories_bloc.dart';
 import '../presentation/blocs/categories/categories_event.dart';
+import '../presentation/blocs/categories/categories_state.dart';
 import '../presentation/blocs/gold_rates/gold_rates_bloc.dart';
 import '../presentation/blocs/gold_rates/gold_rates_event.dart';
 import '../presentation/blocs/gold_rates/gold_rates_state.dart';
 import '../presentation/blocs/jewellery/jewellery_bloc.dart';
 import '../presentation/blocs/jewellery/jewellery_event.dart';
-import '../services/jewellery_repository.dart';
+import '../presentation/blocs/jewellery/jewellery_state.dart';
 import '../widgets/gold_rates_card.dart';
 import '../widgets/jewellery_image_widget.dart';
 import 'categories_tab.dart';
 import 'category_listing_page.dart';
 import 'jewellery_detail_page.dart';
+import '../injection_container.dart';
 import 'search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -29,9 +30,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   GoldRatesEntity? _rates;
-  List<CategoryModel> _categories = [];
-  List<JewelleryItem> _jewellery = [];
-  bool _isLoading = true;
 
   @override
   void initState() {
@@ -44,31 +42,18 @@ class _HomeScreenState extends State<HomeScreen> {
     context.read<CategoriesBloc>().add(LoadCategoriesEvent());
     context.read<JewelleryBloc>().add(const LoadJewelleryEvent(category: 'All'));
 
-    final results = await Future.wait([
-      JewelleryRepository.fetchGoldRates(),
-      JewelleryRepository.fetchCategories(),
-      JewelleryRepository.fetchJewellery(),
-    ]);
-    if (mounted) {
-      final r = results[0] as dynamic;
-      setState(() {
-        _rates = GoldRatesEntity(
-          rate24K: r.rate24K as int,
-          rate22K: r.rate22K as int,
-          rate18K: r.rate18K as int,
-        );
-        _categories = results[1] as List<CategoryModel>;
-        _jewellery = results[2] as List<JewelleryItem>;
-        _isLoading = false;
-      });
-    }
+    // Allow time for refresh indicator
+    await Future.delayed(const Duration(milliseconds: 600));
   }
 
   void _openSearch() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => SearchScreen(allItems: _jewellery, categories: _categories),
+        builder: (_) => BlocProvider(
+          create: (_) => ServiceLocator.createJewelleryBloc(),
+          child: const SearchScreen(),
+        ),
       ),
     );
   }
@@ -287,9 +272,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    Text(
-                      '${_categories.length} Categories',
-                      style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                    BlocBuilder<CategoriesBloc, CategoriesState>(
+                      builder: (context, state) {
+                        final count = state is CategoriesLoaded ? state.categories.length : 0;
+                        return Text(
+                          '$count Categories',
+                          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                        );
+                      }
                     ),
                   ],
                 ),
@@ -298,247 +288,269 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 12),
 
               // 5. Category Grid
-              _isLoading
-                  ? const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(30),
-                        child: CircularProgressIndicator(color: AppColors.goldDark),
-                      ),
-                    )
-                  : Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      child: GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.88,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
+              BlocBuilder<CategoriesBloc, CategoriesState>(
+                builder: (context, state) {
+                  if (state is CategoriesLoading || state is CategoriesInitial) {
+                    return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(30),
+                          child: CircularProgressIndicator(color: AppColors.goldDark),
                         ),
-                        itemCount: _categories.length > 6 ? 6 : _categories.length,
-                        itemBuilder: (context, index) {
-                          final category = _categories[index];
-                          String? displayImg = category.image;
-                          if (displayImg == null || displayImg.isEmpty) {
-                            final match = _jewellery.firstWhere(
-                              (j) => j.category.toLowerCase() == category.name.toLowerCase(),
-                              orElse: () => JewelleryItem(id: 0, name: '', category: ''),
-                            );
-                            displayImg = match.allImages.isNotEmpty ? match.allImages.first : match.singleImage;
-                          }
-                          return GestureDetector(
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => CategoryListingPage(categoryName: category.name),
-                              ),
-                            ),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppColors.goldBorder, width: 1),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color(0x0E000000),
-                                    blurRadius: 6,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Expanded(
-                                    child: ClipRRect(
-                                      borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
-                                      child: JewelleryImageWidget(imagePath: displayImg, fit: BoxFit.cover),
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                                    color: Colors.white,
-                                    child: Column(
-                                      children: [
-                                        Text(
-                                          category.name.toUpperCase(),
-                                          style: const TextStyle(
-                                            fontFamily: 'serif',
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.textMain,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          textAlign: TextAlign.center,
-                                        ),
-                                        const SizedBox(height: 2),
-                                        const Text(
-                                          'Explore Designs →',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            color: AppColors.goldDark,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-              
-              // View All Categories Button
-              if (!_isLoading && _categories.length > 6)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.black,
-                        foregroundColor: AppColors.gold,
-                        side: const BorderSide(color: AppColors.goldDark),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        elevation: 4,
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const CategoriesTab()),
-                        );
-                      },
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'VIEW ALL CATEGORIES',
-                            style: TextStyle(
-                              fontSize: 12,
-                              letterSpacing: 1.5,
-                              fontWeight: FontWeight.bold,
-                            ),
+                      );
+                  }
+                  if (state is CategoriesLoaded) {
+                    final categories = state.categories;
+                    return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        child: GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.88,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 10,
                           ),
-                          SizedBox(width: 8),
-                          Icon(Icons.arrow_forward_ios, size: 14),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-              const SizedBox(height: 25),
-
-              // 6. Featured Recent Designs
-              if (_jewellery.isNotEmpty) ...[
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'HANDCRAFTED LUXURY',
-                        style: TextStyle(
-                          fontSize: 10,
-                          letterSpacing: 2,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.goldDark,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Featured Jewellery Pieces',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontFamily: 'serif',
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textMain,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 210,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _jewellery.take(8).length,
-                    separatorBuilder: (context, index) => const SizedBox(width: 12),
-                    itemBuilder: (context, idx) {
-                      final item = _jewellery[idx];
-                      final img = item.allImages.isNotEmpty ? item.allImages.first : item.singleImage;
-                      return GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => JewelleryDetailPage(item: item)),
-                        ),
-                        child: Container(
-                          width: 145,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: AppColors.goldBorder),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x0D000000),
-                                blurRadius: 6,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(9)),
-                                  child: JewelleryImageWidget(imagePath: img, fit: BoxFit.contain),
+                          itemCount: categories.length > 6 ? 6 : categories.length,
+                          itemBuilder: (context, index) {
+                            final category = categories[index];
+                            String? displayImg = category.image;
+                            return GestureDetector(
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => BlocProvider(
+                                    create: (_) => ServiceLocator.createJewelleryBloc(),
+                                    child: CategoryListingPage(categoryName: category.name),
+                                  ),
                                 ),
                               ),
-                              Padding(
-                                padding: const EdgeInsets.all(8),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppColors.goldBorder, width: 1),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0x0E000000),
+                                      blurRadius: 6,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
-                                    Text(
-                                      item.name.toUpperCase(),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontFamily: 'serif',
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
+                                    Expanded(
+                                      child: ClipRRect(
+                                        borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+                                        child: JewelleryImageWidget(imagePath: displayImg, fit: BoxFit.cover),
                                       ),
                                     ),
-                                    Text(
-                                      item.weight != null && item.weight!.isNotEmpty
-                                          ? '${item.weight}g'
-                                          : item.category,
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        color: AppColors.goldDark,
-                                        fontWeight: FontWeight.w600,
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                                      color: Colors.white,
+                                      child: Column(
+                                        children: [
+                                          Text(
+                                            category.name.toUpperCase(),
+                                            style: const TextStyle(
+                                              fontFamily: 'serif',
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.textMain,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          const SizedBox(height: 2),
+                                          const Text(
+                                            'Explore Designs →',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: AppColors.goldDark,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
+                            );
+                          },
+                        ),
+                      );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+              
+              // View All Categories Button
+              BlocBuilder<CategoriesBloc, CategoriesState>(
+                builder: (context, state) {
+                  if (state is CategoriesLoaded && state.categories.length > 6) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.black,
+                            foregroundColor: AppColors.gold,
+                            side: const BorderSide(color: AppColors.goldDark),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            elevation: 4,
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const CategoriesTab()),
+                            );
+                          },
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'VIEW ALL CATEGORIES',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  letterSpacing: 1.5,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Icon(Icons.arrow_forward_ios, size: 14),
                             ],
                           ),
                         ),
-                      );
-                    },
-                  ),
-                ),
-              ],
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+
+              const SizedBox(height: 25),
+
+              // 6. Featured Recent Designs
+              BlocBuilder<JewelleryBloc, JewelleryState>(
+                builder: (context, state) {
+                  if (state is JewelleryLoaded && state.items.isNotEmpty) {
+                    final jewellery = state.items;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'HANDCRAFTED LUXURY',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  letterSpacing: 2,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.goldDark,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Featured Jewellery Pieces',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontFamily: 'serif',
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textMain,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 210,
+                          child: ListView.separated(
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            scrollDirection: Axis.horizontal,
+                            itemCount: jewellery.take(8).length,
+                            separatorBuilder: (context, index) => const SizedBox(width: 12),
+                            itemBuilder: (context, idx) {
+                              final item = jewellery[idx];
+                              final img = item.displayImage;
+                              return GestureDetector(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => JewelleryDetailPage(item: item)),
+                                ),
+                                child: Container(
+                                  width: 145,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: AppColors.goldBorder),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x0D000000),
+                                        blurRadius: 6,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: ClipRRect(
+                                          borderRadius: const BorderRadius.vertical(top: Radius.circular(9)),
+                                          child: JewelleryImageWidget(imagePath: img, fit: BoxFit.contain),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.all(8),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item.name.toUpperCase(),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontFamily: 'serif',
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            Text(
+                                              item.weight != null && item.weight!.isNotEmpty
+                                                  ? '${item.weight}g'
+                                                  : item.category,
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: AppColors.goldDark,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                  return const SizedBox.shrink();
+                }
+              ),
 
               const SizedBox(height: 25),
 

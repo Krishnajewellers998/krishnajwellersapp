@@ -12,8 +12,9 @@ import 'presentation/blocs/gold_rates/gold_rates_event.dart';
 import 'presentation/blocs/jewellery/jewellery_bloc.dart';
 import 'presentation/blocs/jewellery/jewellery_event.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ServiceLocator.init();
   runApp(const KrishnaJewellersApp());
 }
 

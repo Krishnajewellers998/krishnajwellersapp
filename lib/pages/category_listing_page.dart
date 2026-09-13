@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
-import '../models/jewellery_models.dart';
-import '../services/jewellery_repository.dart';
+import '../domain/entities/jewellery_item_entity.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../presentation/blocs/jewellery/jewellery_bloc.dart';
+import '../presentation/blocs/jewellery/jewellery_event.dart';
+import '../presentation/blocs/jewellery/jewellery_state.dart';
 import '../widgets/jewellery_image_widget.dart';
 import 'jewellery_detail_page.dart';
 
@@ -15,45 +18,29 @@ class CategoryListingPage extends StatefulWidget {
 }
 
 class _CategoryListingPageState extends State<CategoryListingPage> {
-  List<JewelleryItem> _items = [];
-  List<JewelleryItem> _similarItems = [];
-  bool _isLoading = true;
-  String _searchQuery = '';
-
+  final ScrollController _scrollController = ScrollController();
+  
   @override
   void initState() {
     super.initState();
-    _loadItems();
+    context.read<JewelleryBloc>().add(LoadJewelleryEvent(category: widget.categoryName));
+    _scrollController.addListener(_onScroll);
   }
 
-  Future<void> _loadItems() async {
-    final all = await JewelleryRepository.fetchJewellery();
-    final filtered = all.where((item) {
-      return item.category.toLowerCase().trim() == widget.categoryName.toLowerCase().trim();
-    }).toList();
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
-    final others = all.where((item) {
-      return item.category.toLowerCase().trim() != widget.categoryName.toLowerCase().trim();
-    }).toList();
-    others.shuffle();
-
-    if (mounted) {
-      setState(() {
-        _items = filtered;
-        _similarItems = others.take(6).toList();
-        _isLoading = false;
-      });
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      context.read<JewelleryBloc>().add(const LoadMoreJewelleryEvent());
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final displayItems = _items.where((item) {
-      if (_searchQuery.isEmpty) return true;
-      final q = _searchQuery.toLowerCase();
-      return item.name.toLowerCase().contains(q) ||
-          (item.description != null && item.description!.toLowerCase().contains(q));
-    }).toList();
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -86,9 +73,10 @@ class _CategoryListingPageState extends State<CategoryListingPage> {
             ),
             child: TextField(
               onChanged: (val) {
-                setState(() {
-                  _searchQuery = val.trim();
-                });
+                context.read<JewelleryBloc>().add(LoadJewelleryEvent(
+                  category: widget.categoryName,
+                  search: val.trim().isEmpty ? null : val.trim(),
+                ));
               },
               maxLines: 1,
               textAlignVertical: TextAlignVertical.center,
@@ -118,115 +106,85 @@ class _CategoryListingPageState extends State<CategoryListingPage> {
 
           // Content
           Expanded(
-            child: _isLoading
-                ? const Center(
+            child: BlocBuilder<JewelleryBloc, JewelleryState>(
+              builder: (context, state) {
+                if (state is JewelleryLoading || state is JewelleryInitial) {
+                  return const Center(
                     child: CircularProgressIndicator(color: AppColors.goldDark),
-                  )
-                : CustomScrollView(
-                    slivers: [
-                      if (displayItems.isEmpty)
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 100),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.inventory_2_outlined, size: 50, color: AppColors.goldDark.withValues(alpha: 0.5)),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'No designs found in "${widget.categoryName}"',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: AppColors.textMuted,
+                  );
+                }
+                
+                if (state is JewelleryLoaded) {
+                  final displayItems = state.items;
+                  return CustomScrollView(
+                      controller: _scrollController,
+                      slivers: [
+                        if (displayItems.isEmpty)
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 100),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.inventory_2_outlined, size: 50, color: AppColors.goldDark.withValues(alpha: 0.5)),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'No designs found in "${widget.categoryName}"',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: AppColors.textMuted,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
+                            ),
+                          )
+                        else
+                          SliverPadding(
+                            padding: const EdgeInsets.all(12),
+                            sliver: SliverGrid(
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                childAspectRatio: 0.72,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) {
+                                  final item = displayItems[index];
+                                  return _buildProductCard(item);
+                                },
+                                childCount: displayItems.length,
+                              ),
                             ),
                           ),
-                        )
-                      else
-                        SliverPadding(
-                          padding: const EdgeInsets.all(12),
-                          sliver: SliverGrid(
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              childAspectRatio: 0.72,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                            ),
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) {
-                                final item = displayItems[index];
-                                return _buildProductCard(item);
-                              },
-                              childCount: displayItems.length,
-                            ),
-                          ),
-                        ),
-                      
-                      // Similar Products Section
-                      if (_similarItems.isNotEmpty && _searchQuery.isEmpty) ...[
+                        
                         const SliverToBoxAdapter(
-                          child: Padding(
-                            padding: EdgeInsets.fromLTRB(16, 30, 16, 12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'SIMILAR PRODUCTS',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    letterSpacing: 2,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.goldDark,
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'You May Also Like',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontFamily: 'serif',
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.textMain,
-                                  ),
-                                ),
-                              ],
+                          child: SizedBox(height: 30), // Bottom padding
+                        ),
+                        if (!state.hasReachedMax)
+                          const SliverToBoxAdapter(
+                            child: Padding(
+                              padding: EdgeInsets.only(bottom: 50),
+                              child: Center(
+                                child: CircularProgressIndicator(color: AppColors.goldDark),
+                              ),
                             ),
                           ),
-                        ),
-                        SliverPadding(
-                          padding: const EdgeInsets.all(12),
-                          sliver: SliverGrid(
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              childAspectRatio: 0.72,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                            ),
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) {
-                                final item = _similarItems[index];
-                                return _buildProductCard(item);
-                              },
-                              childCount: _similarItems.length,
-                            ),
-                          ),
-                        ),
                       ],
-                      const SliverToBoxAdapter(
-                        child: SizedBox(height: 80), // Bottom padding
-                      ),
-                    ],
-                  ),
+                    );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildProductCard(JewelleryItem item) {
-    final img = item.allImages.isNotEmpty ? item.allImages.first : item.singleImage;
+  Widget _buildProductCard(JewelleryItemEntity item) {
+    final img = item.displayImage;
 
     return GestureDetector(
       onTap: () {

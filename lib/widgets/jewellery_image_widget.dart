@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 
@@ -27,27 +28,23 @@ class JewelleryImageWidget extends StatelessWidget {
     if (path.isEmpty) {
       content = _buildPlaceholder();
     } else if (path.startsWith('http://') || path.startsWith('https://')) {
-      content = Image.network(
-        path,
+      content = CachedNetworkImage(
+        imageUrl: path,
         width: width,
         height: height,
         fit: fit,
-        gaplessPlayback: true,
-        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            width: width,
-            height: height,
-            color: AppColors.goldBgGradientTop,
-            child: const Center(
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.goldDark,
-              ),
+        errorWidget: (context, url, error) => _buildPlaceholder(),
+        placeholder: (context, url) => Container(
+          width: width,
+          height: height,
+          color: AppColors.goldBgGradientTop,
+          child: const Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.goldDark,
             ),
-          );
-        },
+          ),
+        ),
       );
     } else if (path.startsWith('data:image/')) {
       final base64String = path.split(',').last;
@@ -78,27 +75,23 @@ class JewelleryImageWidget extends StatelessWidget {
       } else {
         // It's a backend image path like 'images/...'
         final fullUrl = '${AppConstants.apiBaseUrl}/$cleanPath';
-        content = Image.network(
-          fullUrl,
+        content = CachedNetworkImage(
+          imageUrl: fullUrl,
           width: width,
           height: height,
           fit: fit,
-          gaplessPlayback: true,
-          errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return Container(
-              width: width,
-              height: height,
-              color: AppColors.goldBgGradientTop,
-              child: const Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.goldDark,
-                ),
+          errorWidget: (context, url, error) => _buildPlaceholder(),
+          placeholder: (context, url) => Container(
+            width: width,
+            height: height,
+            color: AppColors.goldBgGradientTop,
+            child: const Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.goldDark,
               ),
-            );
-          },
+            ),
+          ),
         );
       }
     }

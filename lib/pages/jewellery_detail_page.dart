@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
-import '../models/jewellery_models.dart';
+import '../domain/entities/jewellery_item_entity.dart';
 import '../widgets/jewellery_image_widget.dart';
 
 class JewelleryDetailPage extends StatefulWidget {
-  final JewelleryItem item;
+  final JewelleryItemEntity item;
 
   const JewelleryDetailPage({super.key, required this.item});
 
@@ -40,8 +40,8 @@ class _JewelleryDetailPageState extends State<JewelleryDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final images = widget.item.allImages;
-    final currentImage = images.isNotEmpty ? images[_selectedImageIndex] : widget.item.singleImage;
+    final images = widget.item.photos;
+    final currentImage = images.isNotEmpty ? images[_selectedImageIndex] : widget.item.image;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -246,8 +246,8 @@ class _JewelleryDetailPageState extends State<JewelleryDetailPage> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    widget.item.description != null && widget.item.description!.isNotEmpty
-                        ? widget.item.description!
+                    widget.item.description.isNotEmpty
+                        ? widget.item.description
                         : 'Exquisitely handcrafted fine jewellery by Krishna Jewellers. Hallmark certified pure gold design crafted with traditional heritage and modern perfection in Rath, Uttar Pradesh.',
                     style: const TextStyle(
                       fontSize: 13,
