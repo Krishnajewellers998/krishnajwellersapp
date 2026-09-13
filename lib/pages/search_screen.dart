@@ -7,6 +7,7 @@ import '../presentation/blocs/jewellery/jewellery_bloc.dart';
 import '../presentation/blocs/jewellery/jewellery_event.dart';
 import '../presentation/blocs/jewellery/jewellery_state.dart';
 import '../widgets/jewellery_image_widget.dart';
+import '../widgets/recommended_jewellery_widget.dart';
 import 'jewellery_detail_page.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -357,12 +358,19 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ),
         if (state.hasReachedMax)
-           const SliverToBoxAdapter(
-             child: Padding(
-               padding: EdgeInsets.only(bottom: 80),
-               child: Center(
-                 child: Text("No more results", style: TextStyle(color: AppColors.textMuted)),
-               )
+           SliverToBoxAdapter(
+             child: Column(
+               children: [
+                 const Padding(
+                   padding: EdgeInsets.only(bottom: 20, top: 20),
+                   child: Center(
+                     child: Text("No more results", style: TextStyle(color: AppColors.textMuted)),
+                   )
+                 ),
+                 if (items.isEmpty && state.recommendedItems.isNotEmpty)
+                   RecommendedJewelleryWidget(items: state.recommendedItems),
+                 const SizedBox(height: 60),
+               ]
              )
            )
         else 

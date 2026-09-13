@@ -485,7 +485,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               return GestureDetector(
                                 onTap: () => Navigator.push(
                                   context,
-                                  MaterialPageRoute(builder: (_) => JewelleryDetailPage(item: item)),
+                                  MaterialPageRoute(
+                                    builder: (_) => JewelleryDetailPage(item: item),
+                                  ),
                                 ),
                                 child: Container(
                                   width: 145,
@@ -501,19 +503,23 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ),
                                     ],
                                   ),
+                                  clipBehavior: Clip.antiAlias,
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
                                     children: [
                                       Expanded(
-                                        child: ClipRRect(
-                                          borderRadius: const BorderRadius.vertical(top: Radius.circular(9)),
-                                          child: JewelleryImageWidget(imagePath: img, fit: BoxFit.contain),
+                                        child: SizedBox(
+                                          width: double.infinity,
+                                          child: JewelleryImageWidget(
+                                            imagePath: img,
+                                            fit: BoxFit.cover,
+                                          ),
                                         ),
                                       ),
                                       Padding(
                                         padding: const EdgeInsets.all(8),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment: CrossAxisAlignment.center,
                                           children: [
                                             Text(
                                               item.name.toUpperCase(),

@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../domain/entities/jewellery_item_entity.dart';
 import '../../../domain/usecases/get_jewellery_usecase.dart';
 import 'jewellery_event.dart';
 import 'jewellery_state.dart';
@@ -23,8 +24,15 @@ class JewelleryBloc extends Bloc<JewelleryEvent, JewelleryState> {
         page: 1,
         limit: 10,
       ));
+      var recommended = <JewelleryItemEntity>[];
+      if (response.items.isEmpty) {
+        final recResponse = await getJewelleryUseCase(const GetJewelleryParams(limit: 4));
+        recommended = recResponse.items;
+      }
+      
       emit(JewelleryLoaded(
         items: response.items,
+        recommendedItems: recommended,
         selectedCategory: event.category,
         search: event.search,
         hasReachedMax: response.hasReachedMax,

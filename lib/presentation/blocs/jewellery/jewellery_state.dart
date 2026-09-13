@@ -14,6 +14,7 @@ class JewelleryLoading extends JewelleryState {}
 
 class JewelleryLoaded extends JewelleryState {
   final List<JewelleryItemEntity> items;
+  final List<JewelleryItemEntity> recommendedItems;
   final String? selectedCategory;
   final String? search;
   final bool hasReachedMax;
@@ -21,6 +22,7 @@ class JewelleryLoaded extends JewelleryState {
 
   const JewelleryLoaded({
     required this.items,
+    this.recommendedItems = const [],
     this.selectedCategory,
     this.search,
     this.hasReachedMax = false,
@@ -29,6 +31,7 @@ class JewelleryLoaded extends JewelleryState {
 
   JewelleryLoaded copyWith({
     List<JewelleryItemEntity>? items,
+    List<JewelleryItemEntity>? recommendedItems,
     String? selectedCategory,
     String? search,
     bool? hasReachedMax,
@@ -36,6 +39,7 @@ class JewelleryLoaded extends JewelleryState {
   }) {
     return JewelleryLoaded(
       items: items ?? this.items,
+      recommendedItems: recommendedItems ?? this.recommendedItems,
       selectedCategory: selectedCategory ?? this.selectedCategory,
       search: search ?? this.search,
       hasReachedMax: hasReachedMax ?? this.hasReachedMax,
@@ -44,7 +48,7 @@ class JewelleryLoaded extends JewelleryState {
   }
 
   @override
-  List<Object?> get props => [items, selectedCategory, search, hasReachedMax, page];
+  List<Object?> get props => [items, recommendedItems, selectedCategory, search, hasReachedMax, page];
 }
 
 class JewelleryError extends JewelleryState {

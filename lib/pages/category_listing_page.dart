@@ -6,6 +6,7 @@ import '../presentation/blocs/jewellery/jewellery_bloc.dart';
 import '../presentation/blocs/jewellery/jewellery_event.dart';
 import '../presentation/blocs/jewellery/jewellery_state.dart';
 import '../widgets/jewellery_image_widget.dart';
+import '../widgets/recommended_jewellery_widget.dart';
 import 'jewellery_detail_page.dart';
 
 class CategoryListingPage extends StatefulWidget {
@@ -135,6 +136,8 @@ class _CategoryListingPageState extends State<CategoryListingPage> {
                                       color: AppColors.textMuted,
                                     ),
                                   ),
+                                  if (state.recommendedItems.isNotEmpty)
+                                    RecommendedJewelleryWidget(items: state.recommendedItems),
                                 ],
                               ),
                             ),
