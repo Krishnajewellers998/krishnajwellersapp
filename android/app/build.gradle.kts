@@ -49,8 +49,8 @@ android {
         //  versionCode: increase by 1 on every Play Store upload
         //  versionName: human-readable "Major.Minor.Patch"
         // ──────────────────────────────────────────────────────────
-        versionCode = 7
-        versionName = "1.5.2"
+        versionCode = 8
+        versionName = "1.5.3"
 
         // Multi-language support
         resourceConfigurations += listOf("en", "hi")
