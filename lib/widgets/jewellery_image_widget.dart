@@ -4,6 +4,27 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 
+/// Mirrors the website's `getImageUrl()` in apiClient.js exactly.
+///
+/// Rules (same as website):
+///   1. null / empty  → returns empty string (caller shows placeholder)
+///   2. http:// or https:// → pass through (Cloudinary absolute URL)
+///   3. data:           → pass through (base64 inline)
+///   4. //              → pass through (protocol-relative)
+///   5. relative path   → prepend [AppConstants.apiBaseUrl]
+String resolveImageUrl(String? imagePath) {
+  if (imagePath == null || imagePath.trim().isEmpty) return '';
+  final path = imagePath.trim();
+  if (path.startsWith('http://') ||
+      path.startsWith('https://') ||
+      path.startsWith('data:') ||
+      path.startsWith('//')) {
+    return path;
+  }
+  final cleanPath = path.startsWith('/') ? path.substring(1) : path;
+  return '${AppConstants.apiBaseUrl}/$cleanPath';
+}
+
 class JewelleryImageWidget extends StatelessWidget {
   final String? imagePath;
   final double? width;
@@ -28,25 +49,27 @@ class JewelleryImageWidget extends StatelessWidget {
     if (path.isEmpty) {
       content = _buildPlaceholder();
     } else if (path.startsWith('http://') || path.startsWith('https://')) {
+      // Absolute URL (e.g. Cloudinary) — pass through directly
       content = CachedNetworkImage(
         imageUrl: path,
         width: width,
         height: height,
         fit: fit,
         errorWidget: (context, url, error) => _buildPlaceholder(),
-        placeholder: (context, url) => Container(
-          width: width,
-          height: height,
-          color: AppColors.goldBgGradientTop,
-          child: const Center(
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: AppColors.goldDark,
-            ),
-          ),
-        ),
+        placeholder: (context, url) => _buildLoadingIndicator(),
+      );
+    } else if (path.startsWith('//')) {
+      // Protocol-relative URL — treat as https (mirrors website behaviour)
+      content = CachedNetworkImage(
+        imageUrl: 'https:$path',
+        width: width,
+        height: height,
+        fit: fit,
+        errorWidget: (context, url, error) => _buildPlaceholder(),
+        placeholder: (context, url) => _buildLoadingIndicator(),
       );
     } else if (path.startsWith('data:image/')) {
+      // Inline base64 image
       final base64String = path.split(',').last;
       content = Image.memory(
         base64Decode(base64String),
@@ -57,13 +80,11 @@ class JewelleryImageWidget extends StatelessWidget {
         errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
       );
     } else {
-      String cleanPath = path;
-      if (cleanPath.startsWith('/')) {
-        cleanPath = cleanPath.substring(1);
-      }
+      // Relative path — strip leading slash, resolve against API base
+      String cleanPath = path.startsWith('/') ? path.substring(1) : path;
 
       if (cleanPath.startsWith('assets/')) {
-        // It's a local asset
+        // Local Flutter asset
         content = Image.asset(
           cleanPath,
           width: width,
@@ -73,7 +94,7 @@ class JewelleryImageWidget extends StatelessWidget {
           errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
         );
       } else {
-        // It's a backend image path like 'images/...'
+        // Backend-hosted relative path → prepend API base URL
         final fullUrl = '${AppConstants.apiBaseUrl}/$cleanPath';
         content = CachedNetworkImage(
           imageUrl: fullUrl,
@@ -81,17 +102,7 @@ class JewelleryImageWidget extends StatelessWidget {
           height: height,
           fit: fit,
           errorWidget: (context, url, error) => _buildPlaceholder(),
-          placeholder: (context, url) => Container(
-            width: width,
-            height: height,
-            color: AppColors.goldBgGradientTop,
-            child: const Center(
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.goldDark,
-              ),
-            ),
-          ),
+          placeholder: (context, url) => _buildLoadingIndicator(),
         );
       }
     }
@@ -104,6 +115,20 @@ class JewelleryImageWidget extends StatelessWidget {
     }
 
     return content;
+  }
+
+  Widget _buildLoadingIndicator() {
+    return Container(
+      width: width,
+      height: height,
+      color: AppColors.goldBgGradientTop,
+      child: const Center(
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: AppColors.goldDark,
+        ),
+      ),
+    );
   }
 
   Widget _buildPlaceholder() {

@@ -24,7 +24,6 @@ class JewelleryLocalDataSourceImpl implements JewelleryLocalDataSource {
   DateTime? _categoriesCacheTime;
 
   PaginatedResponse<JewelleryItemModel>? _cachedJewelleryAll;
-  DateTime? _jewelleryCacheTime;
   final Map<String, PaginatedResponse<JewelleryItemModel>> _categoryJewelleryCache = {};
 
   final Duration ratesTtl;
@@ -36,6 +35,7 @@ class JewelleryLocalDataSourceImpl implements JewelleryLocalDataSource {
     this.categoriesTtl = const Duration(minutes: 15),
     this.jewelleryTtl = const Duration(minutes: 15),
   });
+
 
   @override
   GoldRatesModel? getCachedGoldRates() {
@@ -124,7 +124,6 @@ class JewelleryLocalDataSourceImpl implements JewelleryLocalDataSource {
 
     if ((category == null || catKey == 'all') && searchKey.isEmpty) {
       _cachedJewelleryAll = items;
-      _jewelleryCacheTime = DateTime.now();
     } else if (catKey != 'all' && searchKey.isEmpty) {
       _categoryJewelleryCache[catKey] = items;
     }
@@ -137,7 +136,6 @@ class JewelleryLocalDataSourceImpl implements JewelleryLocalDataSource {
     _cachedCategories = null;
     _categoriesCacheTime = null;
     _cachedJewelleryAll = null;
-    _jewelleryCacheTime = null;
     _categoryJewelleryCache.clear();
   }
 }

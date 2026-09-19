@@ -1,7 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:cookie_jar/cookie_jar.dart';
-import 'package:dio_cookie_manager/dio_cookie_manager.dart';
-import 'package:path_provider/path_provider.dart';
 import 'data/datasources/jewellery_local_data_source.dart';
 import 'data/datasources/jewellery_remote_data_source.dart';
 import 'data/repositories/gold_rates_repository_impl.dart';
@@ -16,24 +13,32 @@ import 'presentation/blocs/categories/categories_bloc.dart';
 import 'presentation/blocs/gold_rates/gold_rates_bloc.dart';
 import 'presentation/blocs/jewellery/jewellery_bloc.dart';
 
+/// Dependency container — mirrors the website's simple fetch() approach.
+///
+/// Vercel serverless = no cold starts, no cookie sessions, no warm-up calls.
+/// Single Dio instance with clean timeouts matching the website's behaviour.
 class ServiceLocator {
+  /// Shared Dio client — mirrors website's fetch() default headers.
+  /// Content-Type: application/json is set per-request by Dio automatically.
   static final Dio dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 15),
     sendTimeout: const Duration(seconds: 10),
     headers: {
-      'Accept': 'application/json, text/plain, */*',
+      'Accept': 'application/json',
       'Connection': 'keep-alive',
     },
   ));
 
   static Dio get httpClient => dio;
 
-  // Fast local in-memory & TTL cache
-  static final JewelleryLocalDataSource localDataSource = JewelleryLocalDataSourceImpl();
+  // In-memory TTL cache for instant re-renders
+  static final JewelleryLocalDataSource localDataSource =
+      JewelleryLocalDataSourceImpl();
 
-  // Optimized remote backend data source
-  static final JewelleryRemoteDataSource remoteDataSource = JewelleryRemoteDataSourceImpl(dio: dio);
+  // Clean remote source — single request per call, no retries
+  static final JewelleryRemoteDataSource remoteDataSource =
+      JewelleryRemoteDataSourceImpl(dio: dio);
 
   static final GoldRatesRepository goldRatesRepository = GoldRatesRepositoryImpl(
     remoteDataSource: remoteDataSource,
@@ -45,7 +50,7 @@ class ServiceLocator {
     localDataSource: localDataSource,
   );
 
-  // Use Cases
+  // ─── Use Cases ───────────────────────────────────────────────────────────
   static final GetGoldRatesStreamUseCase getGoldRatesStreamUseCase =
       GetGoldRatesStreamUseCase(goldRatesRepository);
 
@@ -58,23 +63,14 @@ class ServiceLocator {
   static final GetJewelleryUseCase getJewelleryUseCase =
       GetJewelleryUseCase(jewelleryRepository);
 
-  // Background prefetch and backend warm-up
+  // ─── Init ─────────────────────────────────────────────────────────────────
+  /// Nothing async to set up on Vercel serverless — just a synchronous return.
   static Future<void> init() async {
-    try {
-      final appDocDir = await getApplicationDocumentsDirectory();
-      final cookieJar = PersistCookieJar(
-        ignoreExpires: true,
-        storage: FileStorage("${appDocDir.path}/.cookies/"),
-      );
-      dio.interceptors.add(CookieManager(cookieJar));
-    } catch (e) {
-      // Fallback to in-memory if persist fails
-      dio.interceptors.add(CookieManager(CookieJar()));
-    }
-    remoteDataSource.prefetchAll();
+    // No cookie jars, no warm-up calls, no Render cold-start prefetch.
+    // Vercel functions respond immediately on every request.
   }
 
-  // Blocs
+  // ─── BLoC Factories ──────────────────────────────────────────────────────
   static GoldRatesBloc createGoldRatesBloc() {
     return GoldRatesBloc(
       getGoldRatesStreamUseCase: getGoldRatesStreamUseCase,

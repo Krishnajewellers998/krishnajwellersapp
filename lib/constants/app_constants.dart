@@ -31,13 +31,16 @@ class AppConstants {
       '@25.5926833,79.5662587,16z/data=!4m6!3m5!1s0x399d434a0774dc51:'
       '0x76e7534921a91ce!8m2!3d25.5926833!4d79.5662587!16s%2Fg%2F11l6tmshdf';
 
-  // ─── LIVE API & DIRECT STREAM ─────────────────────────
-  static const String apiBaseUrl = 'https://krishnajwellersbackend.onrender.com';
-  static const String liveGoldStreamUrl =
-      'https://bcast.pankajchain.com:7768/VOTSBroadcastStreaming/Services/xml/GetLiveRateByTemplateID/pankajchain';
+  // ─── LIVE API ─────────────────────────────────────────
+  // Backend is deployed on Vercel (serverless — no cold-start warm-up needed).
+  // Change this single constant if the domain ever changes.
+  static const String apiBaseUrl = 'https://krishnajwellersbackend.vercel.app';
+
+  // Derived API endpoints (matches backend api.router.js exactly)
   static const String apiGoldRates  = '$apiBaseUrl/api/gold-rates';
   static const String apiCategories = '$apiBaseUrl/api/categories';
   static const String apiJewellery  = '$apiBaseUrl/api/jewellery';
+
 
   // ─── FAMILY MEMBERS ──────────────────────────────────
   // Add or remove family members here to update the Our Family section

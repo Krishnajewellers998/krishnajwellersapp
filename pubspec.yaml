@@ -18,9 +18,6 @@ dependencies:
   flutter_bloc: ^9.0.0
   equatable: ^2.0.7
   cached_network_image: ^3.4.1
-  cookie_jar: ^4.0.9
-  dio_cookie_manager: ^3.5.0
-  path_provider: ^2.1.6
 
 dev_dependencies:
   flutter_test:

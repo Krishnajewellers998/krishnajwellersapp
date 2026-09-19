@@ -7,7 +7,7 @@ import 'jewellery_image_widget.dart';
 class RecommendedJewelleryWidget extends StatelessWidget {
   final List<JewelleryItemEntity> items;
   
-  const RecommendedJewelleryWidget({Key? key, required this.items}) : super(key: key);
+  const RecommendedJewelleryWidget({super.key, required this.items});
 
   @override
   Widget build(BuildContext context) {
